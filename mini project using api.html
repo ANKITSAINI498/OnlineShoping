@@ -1,0 +1,239 @@
+<!-- /products            - Returns list of all products
+/products/1        - Returns details of specific id product
+/products/categories        - Returns all categories
+/products/category/jewelery    - Returns all jewelery products
+
+
+Ex: Shopping Cart
+-->
+<html>
+
+<head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <script>
+        function LoadCategories() {
+            fetch("http://fakestoreapi.com/products/categories")
+                .then(function (response) {
+                    return response.json();
+                })
+                .then(function (data) {
+                    data.unshift("all");
+                    for (var item of data) {
+                        var option = document.createElement("option");
+                        option.text = item.toUpperCase();
+                        option.value = item;
+                        document.getElementById("lstCategories").appendChild(option);
+                    }
+                })
+        }
+
+        function LoadProducts(url) {
+            document.getElementById("catalog").innerHTML = "";
+            fetch(url)
+                .then(function (response) {
+                    return response.json();
+                })
+                .then(function (data) {
+                    for (var item of data) {
+                        var div = document.createElement("div");
+                        div.className = "card m-2 p-2";
+                        div.style.width = "200px";
+                        div.innerHTML = `
+                      <img src=${item.image} height="150" class="card-img-top">
+                      <div class="card-header" style="height:170px">
+                        <p>${item.title}</p>
+                      </div>
+                      <div class="card-body">
+                        <h3>${item.price}</h3>
+                      </div>
+                      <div class="card-footer">
+                         <button onclick="AddToCartClick(${item.id})" class="btn btn-danger w-100">
+                          <span class="bi bi-cart4"></span> Add to Cart
+                        </button>
+                      </div>
+                    `;
+                        document.getElementById("catalog").appendChild(div);
+                    }
+                })
+        }
+
+        function bodyload() {
+            LoadCategories();
+            LoadProducts("http://fakestoreapi.com/products");
+            GetCartItemsCount();
+        }
+        function CategoryChange() {
+            var categoryname = document.getElementById("lstCategories").value;
+            if (categoryname == "all") {
+                LoadProducts("http://fakestoreapi.com/products");
+            } else {
+                LoadProducts(`http://fakestoreapi.com/products/category/${categoryname}`);
+            }
+        }
+        var CartItems = [];
+        function GetCartItemsCount() {
+            document.getElementById("lblCount").innerHTML = CartItems.length;
+        }
+
+        function AddToCartClick(id) {
+            fetch(`http://fakestoreapi.com/products/${id}`)
+                .then(function (response) {
+                    return response.json();
+                })
+                .then(function (data) {
+                    CartItems.push(data);
+                    GetCartItemsCount();
+                    alert(`${data.title} \n Added to Cart`);
+                });
+        }
+        function ShowCart() {
+            document.querySelector("tbody").innerHTML = "";
+            for (var item of CartItems) {
+                var tr = document.createElement("tr");
+                var tdTitle = document.createElement("td");
+                var tdPrice = document.createElement("td");
+                var tdPhoto = document.createElement("td");
+                var tdRemove = document.createElement("td");
+
+                tdTitle.innerHTML = item.title;
+                tdPrice.innerHTML = `₹${item.price.toFixed(2)}`;
+
+                var img = document.createElement("img");
+                img.width = "50";
+                img.height = "50";
+                img.src = item.image;
+
+                tdPhoto.appendChild(img);
+
+                tdRemove.innerHTML = `
+                  <button class="btn btn-outline-danger" onclick="RemoveClick(${item.id})">
+                <span class="bi bi-trash2-fill"></span>
+            </button>
+                `;
+
+                tr.appendChild(tdTitle);
+                tr.appendChild(tdPrice);
+                tr.appendChild(tdPhoto);
+                tr.appendChild(tdRemove);
+
+                document.querySelector("tbody").appendChild(tr);
+            }
+            GetTotalPrice();
+            GetTotalItem();
+        }
+          
+        
+        function RemoveClick(productId){
+            const index = CartItems.findIndex(item => item.id === productId);
+        
+        if (index !== -1){
+            const confirmDelete = confirm(`Are you sure you want to delete: ${CartItems[index].title}?`);
+           if(confirmDelete){
+            CartItems.splice(index, 1);
+            ShowCart();
+           }
+        }
+        }
+
+        function GetTotalPrice() {
+                const totalPrice = CartItems.reduce((sum, item) => sum + item.price, 0);
+                document.getElementById("totalPrice").innerText = `₹${totalPrice.toFixed(2)}`;
+}       
+        function GetTotalItem() {
+                const totalItem = CartItems.length;
+                document.getElementById("totalItem").innerText = totalItem;
+        }
+       
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('payButton').addEventListener('click', function() {
+                document.getElementById('imageContainer').style.display = 'block';
+            });
+        });
+        
+    </script>
+    <style>
+        .total{
+            font-size: 20px;
+            text-align: right;
+            background-color: rgb(178, 215, 247);
+            border: 5px double rgb(35, 28, 241);
+            padding-right: 15px;
+        }
+        #payButton{
+            width: 40%;
+            background-color: rgb(35, 24, 195);
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body class="container-fluid" onload="bodyload()">
+    <header class="bg-danger text-center text-white p-2">
+        <h1> <span class="bi bi-cart3"></span>Amazon Shopping</h1>
+    </header>
+    <section class="row mt-3">
+        <div class="col-3">
+            <div>
+                <label class="form-label">Select Category</label>
+                <div>
+                    <select onchange="CategoryChange()" id="lstCategories" class="form-select">
+
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="col-7">
+            <div id="catalog" class="d-flex overflow-auto flex-wrap" style="height: 500px;">
+
+            </div>
+        </div>
+        <div class="col-2">
+            <button onclick="ShowCart()" data-bs-target="#cart" data-bs-toggle="modal" class="btn btn-danger w-100">
+                <span class="bi bi-cart4"></span> [<span id="lblCount"></span>]
+                Your Cart Items
+            </button>
+            <div class="modal fade" id="cart">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Your Cart Items</h3>
+                            <button data-bs-dismiss="modal" class="btn-close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Price</th>
+                                        <th>Preview</th>
+                                        <th>
+                                            <span class="bi bi-trash-fill text-danger" ></span>
+                                        </th>
+                                    </tr>
+                                    
+                                </thead>
+                                
+                                <tbody>
+                                    
+                                </tbody>
+                                
+                            </table>
+                            <p class="total"><b>Total Price:</b> <span id="totalPrice">$0.00</span></p>
+                            <p class="total"><b>Total Items:</b> <span id="totalItem">$0.00</span></p>
+                           <center> <button id="payButton" class="btn btn-primary">Pay</button></center>
+                             <div id="imageContainer" style="display: none;">
+                             <center> <img id="paymentImage" src="./QR.jpeg" alt="Payment Icon" width="280px" height="400px" /> </center>
+                              </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
